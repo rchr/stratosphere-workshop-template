@@ -2,13 +2,27 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.komoot.stratsphere</groupId>
-	<artifactId>geometry-index</artifactId>
+	<artifactId>workshop-template</artifactId>
 	<version>0.1-SNAPSHOT</version>
-	<name>geometry index</name>
+	<name>Workshop template</name>
 
-	<description>Creates a geometry index: Each node and way gets links to their 'spatially related' areas.</description>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>stratosphere.eu</id>
+			<url>http://www.stratosphere.eu/maven2/</url>
+		</repository>
+	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>eu.stratosphere</groupId>
+			<artifactId>pact-common</artifactId>
+			<version>0.2</version>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -47,7 +61,6 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
-				<inherited>true</inherited>
 				<configuration>
 					<source>1.7</source>
 					<target>1.7</target>
