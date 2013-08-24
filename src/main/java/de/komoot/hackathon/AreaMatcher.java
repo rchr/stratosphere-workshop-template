@@ -88,11 +88,11 @@ public class AreaMatcher {
 		}
 
 		try(Writer writer = new FileWriter(new File(directory, "ways-raw.csv"))) {
-			write(nodes, writer, mapper);
+			write(ways, writer, mapper);
 		}
 
 		try(Writer writer = new FileWriter(new File(directory, "areas-raw.csv"))) {
-			write(nodes, writer, mapper);
+			write(areas, writer, mapper);
 		}
 	}
 
