@@ -3,6 +3,7 @@ package de.komoot.hackathon.openstreetmap;
 import com.google.common.base.Preconditions;
 import com.vividsolutions.jts.geom.Geometry;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -15,14 +16,10 @@ public abstract class OsmEntityImpl<T extends Geometry> implements OsmEntity<T> 
 
 	private final T geometry;
 
-	private final Map<String,String> tags;
-
-	protected OsmEntityImpl(long osmId, T geometry, Map<String, String> tags) {
+	protected OsmEntityImpl(long osmId, T geometry) {
 		Preconditions.checkNotNull(geometry);
-		Preconditions.checkNotNull(tags);
 		this.osmId = osmId;
 		this.geometry = geometry;
-		this.tags = tags;
 	}
 
 	public long getOsmId() {
@@ -34,6 +31,6 @@ public abstract class OsmEntityImpl<T extends Geometry> implements OsmEntity<T> 
 	}
 
 	public Map<String, String> getTags() {
-		return tags;
+		return Collections.emptyMap();
 	}
 }

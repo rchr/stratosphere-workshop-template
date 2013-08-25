@@ -15,8 +15,8 @@ public class OsmAreaImpl extends OsmEntityImpl<MultiPolygon> implements OsmArea 
 	private final SOURCE source;
 	private final List<PolygonMember> polygonMembers;
 
-	public OsmAreaImpl(long osmId, List<PolygonMember> polygonMembers, Map<String, String> tags, SOURCE source, GeometryFactory factory) {
-		super(osmId, OsmAreaUtils.createGeometry(factory, polygonMembers), tags);
+	public OsmAreaImpl(long osmId, List<PolygonMember> polygonMembers, SOURCE source, GeometryFactory factory) {
+		super(osmId, OsmAreaUtils.createGeometry(factory, polygonMembers));
 		this.source = source;
 		this.polygonMembers = polygonMembers;
 	}

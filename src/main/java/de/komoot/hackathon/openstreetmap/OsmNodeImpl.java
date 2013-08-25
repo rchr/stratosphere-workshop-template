@@ -8,8 +8,8 @@ import java.util.Map;
 /** @author jan */
 public class OsmNodeImpl extends OsmEntityImpl<Point> implements OsmNode {
 
-	public OsmNodeImpl(long osmId, Point geometry, Map<String, String> tags) {
-		super(osmId, geometry, tags);
+	public OsmNodeImpl(long osmId, Point geometry) {
+		super(osmId, geometry);
 	}
 
 	@Override

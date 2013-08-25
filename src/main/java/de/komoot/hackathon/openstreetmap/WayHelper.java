@@ -12,12 +12,12 @@ public class WayHelper {
 	 *
 	 * @return
 	 */
-	public static boolean isArea(OsmWay way) {
+	public static boolean isArea(OsmWay way, Map<String, String> tags) {
 		// check if first node is the same as last node
 		if(!firstAndLastIsSame(way)) {
 			return false;
 		}
-		Map<String, String> tags = way.getTags();
+
 		String area = tags.get(OsmConstants.AREA);
 		if(area != null) {
 			if(area.equals(OsmConstants.YES)) {
@@ -50,13 +50,12 @@ public class WayHelper {
 	 *
 	 * @return
 	 */
-	public static boolean isUsedAsOsmWay(OsmWay way) {
+	public static boolean isUsedAsOsmWay(OsmWay way, Map<String, String> tags) {
 		// check if first node is not the same as last node
 		if(!firstAndLastIsSame(way)) {
 			return true;
 		}
 
-		Map<String, String> tags = way.getTags();
 		for(String key : OsmConstants.KEYSDESCRIBINGCLOSEDPOLYLINE) {
 			if(tags.containsKey(key)) {
 				return true;
@@ -68,11 +67,11 @@ public class WayHelper {
 		return false;
 	}
 
-	public static boolean isUsedAsKmtWay(OsmWay way) {
-		if(way.getTags() == null) {
+	public static boolean isUsedAsKmtWay(OsmWay way, Map<String, String> tags) {
+		if(tags == null) {
 			return false;
 		}
-		for(String key : way.getTags().keySet()) {
+		for(String key : tags.keySet()) {
 			if(OsmConstants.TAGS_DEFINING_WAY_MAP.containsKey(key)) {
 				String value = way.getTags().get(key);
 

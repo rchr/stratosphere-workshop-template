@@ -1,7 +1,10 @@
 package de.komoot.hackathon.openstreetmap;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import de.komoot.hackathon.EntityValidator;
@@ -12,6 +15,9 @@ import org.openstreetmap.osmosis.core.container.v0_6.*;
 import org.openstreetmap.osmosis.core.domain.v0_6.*;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 
 /** @author richard */
@@ -21,16 +27,22 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	private final static org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(OsmToKmtSink.class);
 	private final static Map<String, String> EMPTY_TAGS = Collections.unmodifiableMap(new HashMap<String, String>());
 	private final static GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+	private final ObjectMapper mapper;
 	private final List<OsmNode> nodes;
 	private final List<OsmWay> ways;
-	private final List<OsmArea> areas;
-	private List<OsmWay> waysAndAreas;
+	private final BufferedWriter nodeswriter;
+	private final BufferedWriter lineswriter;
+	private final BufferedWriter areaswriter;
 
-	public OsmToKmtSink(int initialnodessize) {
-		nodes = new ArrayList<OsmNode>(initialnodessize);
-		waysAndAreas = new ArrayList<OsmWay>(initialnodessize / 10);
-		ways = new ArrayList<OsmWay>(initialnodessize / 10);
-		areas = new ArrayList<OsmArea>(initialnodessize / 1000);
+	public OsmToKmtSink(int initialnodessize, BufferedWriter nodeswriter, BufferedWriter lineswriter, BufferedWriter areaswriter) {
+		this.nodes = new ArrayList<OsmNode>(initialnodessize);
+		this.ways = new ArrayList<OsmWay>(initialnodessize / 10);
+		this.nodeswriter = nodeswriter;
+		this.lineswriter = lineswriter;
+		this.areaswriter = areaswriter;
+		mapper = new ObjectMapper();
+		mapper.registerModule(new GeometryModule());
+		mapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
 	}
 
 	/**
@@ -61,6 +73,16 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 		return null; // key not found
 	}
 
+	private static void write(String id, Geometry geometry, Map<String, String> tags, Writer writer, ObjectMapper mapper) {
+		try {
+			JsonGeometryEntity<Geometry> g = new JsonGeometryEntity<Geometry>(id, geometry, tags);
+			mapper.writeValue(writer, g);
+			writer.write('\n');
+		} catch(IOException e) {
+			throw new IllegalStateException("IOException occured when writing entity " + id, e);
+		}
+	}
+
 	@Override
 	public void initialize(Map<String, Object> arg0) {
 
@@ -68,7 +90,7 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 
 	@Override
 	public void complete() {
-		markWaysAsPolylines();
+
 	}
 
 	@Override
@@ -82,7 +104,7 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 
 	@Override
 	public void process(BoundContainer arg0) {
-		// TODO Auto-generated method stub
+
 	}
 
 	@Override
@@ -100,8 +122,9 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 
 		Map<String, String> tags = convertTagsToMap(node.getTags());
 		Coordinate c = new Coordinate(node.getLongitude(), node.getLatitude());
-		OsmNode OsmNode = new OsmNodeImpl(node.getId(), GEOMETRY_FACTORY.createPoint(c), tags);
-		nodes.add(OsmNode);
+		OsmNode osmNode = new OsmNodeImpl(node.getId(), GEOMETRY_FACTORY.createPoint(c));
+		nodes.add(osmNode);
+		write(osmNode.getId(), osmNode.getGeometry(), tags, nodeswriter, mapper);
 	}
 
 	@Override
@@ -130,15 +153,16 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 		 * afterwards for polylines.
 		 */
 		if(useWay && EntityValidator.doesWayHaveValidNumberOfNodes(osmNodes)) {
-			if(waysAndAreas.size() > 0) {
-				long lastId = waysAndAreas.get(waysAndAreas.size() - 1).getOsmId();
+			if(ways.size() > 0) {
+				long lastId = ways.get(ways.size() - 1).getOsmId();
 				if(way.getId() <= lastId) {
 					throw new IllegalStateException("Tried to add osm way with id " + way.getId() + " but last imported id was larger: " + lastId);
 				}
 			}
 			Map<String, String> tags = convertTagsToMap(way.getTags());
-			OsmWay osmWay = new OsmWayImpl(way.getId(), osmNodes, tags, GEOMETRY_FACTORY);
-			waysAndAreas.add(osmWay);
+			OsmWay osmWay = new OsmWayImpl(way.getId(), osmNodes, GEOMETRY_FACTORY);
+			ways.add(osmWay);
+			writeWayOrArea(osmWay, tags);
 		}
 	}
 
@@ -172,7 +196,7 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	}
 
 	private OsmWay searchWay(long osmID) {
-		return binarySearchIn(waysAndAreas, osmID);
+		return binarySearchIn(ways, osmID);
 	}
 
 	/**
@@ -200,10 +224,10 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 		if(polygonMembers != null) {
 			Map<String, String> tags = convertTagsToMap(relation.getTags());
 			try {
-				OsmArea OsmArea = new OsmAreaImpl(relation.getId(), polygonMembers, tags, SOURCE.RELATION, GEOMETRY_FACTORY);
-				AreaValidationState areaValidationState = EntityValidator.validate(OsmArea);
+				OsmArea osmArea = new OsmAreaImpl(relation.getId(), polygonMembers, SOURCE.RELATION, GEOMETRY_FACTORY);
+				AreaValidationState areaValidationState = EntityValidator.validate(osmArea);
 				if(areaValidationState == AreaValidationState.VALID) {
-					areas.add(OsmArea);
+					write(osmArea.getId(), osmArea.getGeometry(), tags, areaswriter, mapper);
 				}
 			} catch(RuntimeException e) {
 				// ignore area, geometry broken
@@ -246,38 +270,22 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	 * {@link OsmWay} not representing a polyline are not deleted, because they
 	 * are needed to build up the (multi-)polygons.
 	 */
-	private void markWaysAsPolylines() {
-		for(OsmWay tmpWay : waysAndAreas) {
-			if(WayHelper.isArea(tmpWay)) {
-				PolygonMember member = new PolygonMember(tmpWay, PolygonMember.PolygonMemberType.OUTER);
-				try {
-					OsmArea OsmArea = new OsmAreaImpl(tmpWay.getOsmId(), Arrays.asList(member), tmpWay.getTags(), SOURCE.WAY, GEOMETRY_FACTORY);
-					AreaValidationState areaValidationState = EntityValidator.validate(OsmArea);
-					if(areaValidationState == AreaValidationState.VALID) {
-						areas.add(OsmArea);
-					}
-				} catch(RuntimeException e) {
-					// ignore area., it is not valid
+	private void writeWayOrArea(OsmWay osmWay, Map<String, String> tags) {
+		if(WayHelper.isArea(osmWay, tags)) {
+			PolygonMember member = new PolygonMember(osmWay, PolygonMember.PolygonMemberType.OUTER);
+			try {
+				OsmArea osmArea = new OsmAreaImpl(osmWay.getOsmId(), Arrays.asList(member), SOURCE.WAY, GEOMETRY_FACTORY);
+				AreaValidationState areaValidationState = EntityValidator.validate(osmArea);
+				if(areaValidationState == AreaValidationState.VALID) {
+					write(osmArea.getId(), osmArea.getGeometry(), tags, areaswriter, mapper);
 				}
-			}
-			// TODO: jan: I disabled the check because I need all ways lateron
-			// (at least I don't know of a valid whitelist right now)
-			if(WayHelper.isUsedAsOsmWay(tmpWay)) {
-				ways.add(tmpWay);
+			} catch(RuntimeException e) {
+				// ignore area., it is not valid
 			}
 		}
-		waysAndAreas = null;
-	}
 
-	public List<OsmNode> getNodes() {
-		return nodes;
-	}
-
-	public List<OsmWay> getWays() {
-		return ways;
-	}
-
-	public List<OsmArea> getAreas() {
-		return areas;
+		if(WayHelper.isUsedAsOsmWay(osmWay, tags)) {
+			write(osmWay.getId(), osmWay.getGeometry(), tags, lineswriter, mapper);
+		}
 	}
 }

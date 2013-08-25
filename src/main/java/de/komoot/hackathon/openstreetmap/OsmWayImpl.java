@@ -13,8 +13,8 @@ public class OsmWayImpl extends OsmEntityImpl<LineString> implements OsmWay {
 
 	private final List<OsmNode> wayNodes;
 
-	public OsmWayImpl(long osmId, List<OsmNode> wayOsmNodes, Map<String, String> tags, GeometryFactory factory) {
-		super(osmId,factory.createLineString(new KmtCoordinateSequenceSlimWay(wayOsmNodes)),tags);
+	public OsmWayImpl(long osmId, List<OsmNode> wayOsmNodes, GeometryFactory factory) {
+		super(osmId,factory.createLineString(new KmtCoordinateSequenceSlimWay(wayOsmNodes)));
 		this.wayNodes = wayOsmNodes;
 	}
 
