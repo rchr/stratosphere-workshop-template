@@ -24,7 +24,7 @@ public class PfbToJsonRecorodsExporter {
 
 	public static void main(String[] args) throws IOException {
 		PbfReader in = new PbfReader(new File(args[0]), 4);
-		OsmToKmtSink out = new OsmToKmtSink(10000);
+		OsmToKmtSink out = new OsmToKmtSink(10000000);
 		in.setSink(out);
 		in.run();
 
