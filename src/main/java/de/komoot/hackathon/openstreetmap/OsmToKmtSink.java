@@ -1,15 +1,16 @@
-package de.komoot.hackathon;
+package de.komoot.hackathon.openstreetmap;
 
 import com.google.common.collect.Maps;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
-import de.komoot.hackathon.openstreetmap.*;
+import de.komoot.hackathon.EntityValidator;
+import de.komoot.hackathon.EntityValidator.AreaValidationState;
+import de.komoot.hackathon.OsmConstants;
+import de.komoot.hackathon.openstreetmap.OsmArea.SOURCE;
 import org.openstreetmap.osmosis.core.container.v0_6.*;
 import org.openstreetmap.osmosis.core.domain.v0_6.*;
 import org.openstreetmap.osmosis.core.task.v0_6.Sink;
-import de.komoot.hackathon.EntityValidator.AreaValidationState;
-import de.komoot.hackathon.openstreetmap.OsmArea.SOURCE;
 
 import java.util.*;
 
@@ -20,11 +21,9 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	private final static org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(OsmToKmtSink.class);
 	private final static Map<String, String> EMPTY_TAGS = Collections.unmodifiableMap(new HashMap<String, String>());
 	private final static GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
-
 	private final List<OsmNode> nodes;
 	private final List<OsmWay> ways;
 	private final List<OsmArea> areas;
-
 	private List<OsmWay> waysAndAreas;
 
 	public OsmToKmtSink(int initialnodessize) {
@@ -99,11 +98,10 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 			}
 		}
 
-			Map<String, String> tags = convertTagsToMap(node.getTags());
-			Coordinate c = new Coordinate(node.getLongitude(), node.getLatitude());
-			OsmNode OsmNode = new OsmNodeImpl(node.getId(),GEOMETRY_FACTORY.createPoint(c), tags);
-			nodes.add(OsmNode);
-
+		Map<String, String> tags = convertTagsToMap(node.getTags());
+		Coordinate c = new Coordinate(node.getLongitude(), node.getLatitude());
+		OsmNode OsmNode = new OsmNodeImpl(node.getId(), GEOMETRY_FACTORY.createPoint(c), tags);
+		nodes.add(OsmNode);
 	}
 
 	@Override
@@ -155,6 +153,10 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	}
 
 	private Map<String, String> convertTagsToMap(Collection<Tag> tags) {
+		if(tags.isEmpty()) {
+			// more efficient to re-use empty map
+			return Collections.emptyMap();
+		} else {
 			Map<String, String> newMap = Maps.newHashMapWithExpectedSize(tags.size());
 			for(Tag t : tags) {
 				String key = t.getKey();
@@ -162,6 +164,7 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 				newMap.put(key, value);
 			}
 			return newMap;
+		}
 	}
 
 	private OsmNode searchNode(long osmID) {
@@ -277,5 +280,4 @@ public class OsmToKmtSink implements Sink, EntityProcessor {
 	public List<OsmArea> getAreas() {
 		return areas;
 	}
-
 }
