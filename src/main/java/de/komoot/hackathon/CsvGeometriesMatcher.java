@@ -92,7 +92,11 @@ public class CsvGeometriesMatcher {
 		String line;
 		List<JsonGeometryEntity<Geometry>> entries = new ArrayList<>();
 		while((line=reader.readLine()) != null) {
-			mapper.readValue(line, JsonGeometryEntity.class);
+			try {
+				entries.add(mapper.readValue(line, JsonGeometryEntity.class));
+			} catch (RuntimeException e) {
+				throw new RuntimeException("Unable to parse line: " + line + ":", e);
+			}
 		}
 		return entries;
 	}

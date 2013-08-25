@@ -31,6 +31,7 @@ public class PfbToJsonRecorodsExporter {
 		File directory = new File(args[1]);
 
 		writeGeometries(out.getNodes(), out.getWays(), out.getAreas(), directory);
+		LOGGER.info("Wrote all files to " + directory);
 	}
 
 	private static void write(Collection<? extends OsmEntity<?>> entities, Writer writer, ObjectMapper mapper) throws IOException {
