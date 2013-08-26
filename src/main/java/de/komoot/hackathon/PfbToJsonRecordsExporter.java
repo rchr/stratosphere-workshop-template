@@ -3,10 +3,8 @@ package de.komoot.hackathon;
 import de.komoot.hackathon.openstreetmap.OsmToKmtSink;
 import org.openstreetmap.osmosis.pbf2.v0_6.PbfReader;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Exports a Pbf openstreetmap file to a file containing rows of json objects.
@@ -23,15 +21,19 @@ public class PfbToJsonRecordsExporter {
 		PbfReader in = new PbfReader(new File(args[0]), 4);
 
 		File directory = new File(args[1]);
-		try(BufferedWriter nwriter = new BufferedWriter(new FileWriter(new File(directory, "nodes-raw.csv")))) {
-			try(BufferedWriter lwriter = new BufferedWriter(new FileWriter(new File(directory, "ways-raw.csv")))) {
-				try(BufferedWriter awriter = new BufferedWriter(new FileWriter(new File(directory, "areas-raw.csv")))) {
-					OsmToKmtSink out = new OsmToKmtSink(1000, nwriter, lwriter, awriter);
+		try(BufferedWriter nwriter = createWriter(new File(directory, "nodes-raw.csv.gz"))) {
+			try(BufferedWriter lwriter = createWriter(new File(directory, "ways-raw.csv.gz"))) {
+				try(BufferedWriter awriter = createWriter(new File(directory, "areas-raw.csv.gz"))) {
+					OsmToKmtSink out = new OsmToKmtSink(NUMBEROFNODES, nwriter, lwriter, awriter);
 					in.setSink(out);
 					in.run();
 				}
 			}
 		}
 		LOGGER.info("Wrote all files to " + directory);
+	}
+
+	private static BufferedWriter createWriter(File out) throws IOException {
+		return new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(out))));
 	}
 }
