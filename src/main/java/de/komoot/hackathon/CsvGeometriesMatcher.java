@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
 /**
  * Reads three csv files containing nodes, ways and areas and matches them based on a spatial relationship.
  *
+ * Richard: Just a test comment, to test if git works!
+ *
  * @author jan
  */
 public class CsvGeometriesMatcher {
